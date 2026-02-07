@@ -5,6 +5,7 @@ struct MarkdownList<List: ListItemContainer>: View {
     var listItemsContainer: List
     
     @Environment(\.markdownRendererConfiguration) private var configuration
+    @Environment(\.markdownTaskListMarker) private var taskListMarker
     private var marker: Either<AnyUnorderedListMarkerProtocol, AnyOrderedListMarkerProtocol> {
         if listItemsContainer is UnorderedList {
             return .left(configuration.listConfiguration.unorderedListMarker)
@@ -40,8 +41,12 @@ struct MarkdownList<List: ListItemContainer>: View {
         var index: Int
         
         var body: some View {
-            if let checkBox = listItem.checkbox {
-                MarkdownCheckbox(checkbox: checkBox)
+            if listItem.checkbox != nil {
+                if let taskListMarker = list.taskListMarker {
+                    taskListMarker.makeBody(listItem: listItem)
+                } else if let checkBox = listItem.checkbox {
+                    MarkdownCheckbox(checkbox: checkBox)
+                }
             } else if case let .left(unorderedMarker) = list.marker {
                 SwiftUI.Text(unorderedMarker.marker(listDepth: list.depth))
                     .backdeployedMonospaced(unorderedMarker.monospaced)

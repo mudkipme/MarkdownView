@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import Markdown
 
 extension View {
     nonisolated public func markdownListIndent(_ indent: CGFloat) -> some View {
@@ -30,5 +31,16 @@ extension View {
         transformEnvironment(\.markdownRendererConfiguration) { configuration in
             configuration.componentSpacing = spacing
         }
+    }
+}
+
+extension View {
+    /// Replaces the default task-list checkbox marker with a custom marker view.
+    ///
+    /// The marker is only used for list items containing task-list checkboxes (`- [ ]` / `- [x]`).
+    nonisolated public func taskListMarker<Marker: View>(
+        @ViewBuilder _ marker: @escaping (_ listItem: ListItem) -> Marker
+    ) -> some View {
+        environment(\.markdownTaskListMarker, AnyTaskListMarker(marker))
     }
 }
