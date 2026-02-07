@@ -68,7 +68,7 @@ struct CmarkNodeVisitor: @preconcurrency MarkupVisitor {
     }
     
     func visitSoftBreak(_ softBreak: SoftBreak) -> MarkdownNodeView {
-        MarkdownNodeView(" ")
+        MarkdownNodeView("\n")
     }
     
     func visitThematicBreak(_ thematicBreak: ThematicBreak) -> MarkdownNodeView {
