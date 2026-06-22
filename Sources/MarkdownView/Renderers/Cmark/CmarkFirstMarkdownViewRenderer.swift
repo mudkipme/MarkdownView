@@ -8,46 +8,61 @@
 import SwiftUI
 import Markdown
 
-struct CmarkFirstMarkdownViewRenderer: MarkdownViewRenderer {    
+struct CmarkFirstMarkdownViewRenderer: MarkdownViewRenderer {
     func makeBody(
         content: MarkdownContent,
-        configuration: MarkdownRendererConfiguration
+        configuration: MarkdownRendererConfiguration,
+        elementRenderers: [MarkdownElementRendererRegistration]
     ) -> some View {
         _makeAndCacheBody(
             content: content,
-            configuration: configuration
+            configuration: configuration,
+            elementRenderers: elementRenderers
         )
     }
     
     private func _makeAndCacheBody(
         content: MarkdownContent,
-        configuration: MarkdownRendererConfiguration
+        configuration: MarkdownRendererConfiguration,
+        elementRenderers: [MarkdownElementRendererRegistration]
     ) -> some View {
-        if let cached = CacheStorage.shared.withCacheIfAvailable(
+        if elementRenderers.isEmpty,
+           let cached = CacheStorage.shared.withCacheIfAvailable(
             content,
             type: Cache.self
         ), cached.configuration == configuration {
             return AnyView(cached.renderedView)
         }
         
-        var parseOptions = ParseOptions()
-        if !configuration.allowedBlockDirectiveRenderers.isEmpty {
-            parseOptions.insert(.parseBlockDirectives)
-        }
-        
-        let renderedView = CmarkNodeVisitor(configuration: configuration)
-            .makeBody(for: content.parse(options: parseOptions))
+        let visitor = CmarkNodeVisitor(
+            configuration: configuration,
+            elementRenderers: elementRenderers
+        )
+        let renderedView = visitor
+            .makeBody(for: content.parse(options: parseOptions(for: elementRenderers)))
             .erasedToAnyView()
         
-        CacheStorage.shared.addCache(
-            Cache(
-                markdownContent: content,
-                configuration: configuration,
-                renderedView: renderedView
+        if elementRenderers.isEmpty {
+            CacheStorage.shared.addCache(
+                Cache(
+                    markdownContent: content,
+                    configuration: configuration,
+                    renderedView: renderedView
+                )
             )
-        )
+        }
         
         return renderedView
+    }
+}
+
+fileprivate extension CmarkFirstMarkdownViewRenderer {
+    func parseOptions(for elementRenderers: [MarkdownElementRendererRegistration]) -> ParseOptions {
+        var parseOptions = ParseOptions()
+        if elementRenderers.contains(where: { $0.blockDirective != nil }) {
+            parseOptions.insert(.parseBlockDirectives)
+        }
+        return parseOptions
     }
 }
 

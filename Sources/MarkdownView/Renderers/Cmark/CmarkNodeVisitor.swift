@@ -12,9 +12,15 @@ import Markdown
 @preconcurrency
 struct CmarkNodeVisitor: @preconcurrency MarkupVisitor {
     var configuration: MarkdownRendererConfiguration
+    var elementRenderers: [MarkdownElementRendererRegistration]
+    private var activeInlineIntent: InlinePresentationIntent = []
     
-    init(configuration: MarkdownRendererConfiguration) {
+    init(
+        configuration: MarkdownRendererConfiguration,
+        elementRenderers: [MarkdownElementRendererRegistration]
+    ) {
         self.configuration = configuration
+        self.elementRenderers = elementRenderers
     }
     
     func makeBody(for markup: any Markup) -> some View {
@@ -64,6 +70,7 @@ struct CmarkNodeVisitor: @preconcurrency MarkupVisitor {
     func visitBlockQuote(_ blockQuote: BlockQuote) -> MarkdownNodeView {
         MarkdownNodeView {
             MarkdownBlockQuote(blockQuote: blockQuote)
+                .tint(configuration.tintColors[.blockQuote, default: .accentColor])
         }
     }
     
@@ -82,9 +89,10 @@ struct CmarkNodeVisitor: @preconcurrency MarkupVisitor {
     }
     
     func visitInlineCode(_ inlineCode: InlineCode) -> MarkdownNodeView {
+        let tintColor = configuration.tintColors[.inlineCodeBlock, default: .accentColor]
         var attributedString = AttributedString(stringLiteral: inlineCode.code)
-        attributedString.foregroundColor = configuration.inlineCodeTintColor
-        attributedString.backgroundColor = configuration.inlineCodeTintColor.opacity(0.1)
+        attributedString.foregroundColor = tintColor
+        attributedString.backgroundColor = tintColor.opacity(0.1)
         return MarkdownNodeView(attributedString)
     }
     
@@ -106,7 +114,7 @@ struct CmarkNodeVisitor: @preconcurrency MarkupVisitor {
     func visitCodeBlock(_ codeBlock: CodeBlock) -> MarkdownNodeView {
         MarkdownNodeView {
             MarkdownStyledCodeBlock(
-                configuration: CodeBlockStyleConfiguration(
+                configuration: MarkdownCodeBlockStyleConfiguration(
                     language: codeBlock.language,
                     code: codeBlock.code
                 )
@@ -171,7 +179,7 @@ struct CmarkNodeVisitor: @preconcurrency MarkupVisitor {
     func visitTableCell(_ cell: Markdown.Table.Cell) -> MarkdownNodeView {
         var cellViews = [MarkdownNodeView]()
         for child in cell.children {
-            var renderer = CmarkNodeVisitor(configuration: configuration)
+            var renderer = CmarkNodeVisitor(configuration: configuration, elementRenderers: elementRenderers)
             let cellView = renderer.visit(child)
             cellViews.append(cellView)
         }
@@ -192,45 +200,15 @@ struct CmarkNodeVisitor: @preconcurrency MarkupVisitor {
     }
     
     func visitEmphasis(_ emphasis: Markdown.Emphasis) -> MarkdownNodeView {
-        var attributedString = AttributedString()
-        for child in emphasis.children {
-            var renderer = self
-            guard let text = renderer.visit(child).asAttributedString else { continue }
-            let intent = text.inlinePresentationIntent ?? []
-            attributedString += text.mergingAttributes(
-                AttributeContainer()
-                    .inlinePresentationIntent(intent.union(.emphasized))
-            )
-        }
-        return MarkdownNodeView(attributedString)
+        applyInlineIntent(.emphasized, to: emphasis.children)
     }
-    
+
     func visitStrong(_ strong: Strong) -> MarkdownNodeView {
-        var attributedString = AttributedString()
-        for child in strong.children {
-            var renderer = self
-            guard let text = renderer.visit(child).asAttributedString else { continue }
-            let intent = text.inlinePresentationIntent ?? []
-            attributedString += text.mergingAttributes(
-                AttributeContainer()
-                    .inlinePresentationIntent(intent.union(.stronglyEmphasized))
-            )
-        }
-        return MarkdownNodeView(attributedString)
+        applyInlineIntent(.stronglyEmphasized, to: strong.children)
     }
-    
+
     func visitStrikethrough(_ strikethrough: Strikethrough) -> MarkdownNodeView {
-        var attributedString = AttributedString()
-        for child in strikethrough.children {
-            var renderer = self
-            guard let text = renderer.visit(child).asAttributedString else { continue }
-            let intent = text.inlinePresentationIntent ?? []
-            attributedString += text.mergingAttributes(
-                AttributeContainer()
-                    .inlinePresentationIntent(intent.union(.strikethrough))
-            )
-        }
-        return MarkdownNodeView(attributedString)
+        applyInlineIntent(.strikethrough, to: strikethrough.children)
     }
     
     mutating func visitLink(_ link: Markdown.Link) -> MarkdownNodeView {
@@ -238,13 +216,33 @@ struct CmarkNodeVisitor: @preconcurrency MarkupVisitor {
               let url = URL(string: destination)
         else { return descendInto(link) }
         
+        let tintColor = configuration.tintColors[.link, default: .accentColor]
+        
         let nodeView = descendInto(link)
+        let availableRenderers = elementRenderers.compactMap(\.link)
+        if availableRenderers.isEmpty == false,
+           let urlScheme = url.scheme,
+           let linkRenderer = availableRenderers.first(where: { $0.scheme == urlScheme })?.renderer {
+            let labelContent: AnyView = nodeView
+                .tint(tintColor)
+                .erasedToAnyView()
+            let linkConfiguration = MarkdownLinkRendererConfiguration(
+                url: url,
+                label: labelContent
+            )
+            return MarkdownNodeView {
+                linkRenderer
+                    .makeBody(configuration: linkConfiguration)
+                    .erasedToAnyView()
+            }
+        }
+
         return if let attributedString = nodeView.asAttributedString {
             MarkdownNodeView(
                 attributedString.mergingAttributes(
                     AttributeContainer()
                         .link(url)
-                        .foregroundColor(configuration.linkTintColor)
+                        .foregroundColor(tintColor)
                 )
             )
         } else {
@@ -252,8 +250,32 @@ struct CmarkNodeVisitor: @preconcurrency MarkupVisitor {
                 Link(destination: url) {
                     nodeView
                 }
-                .foregroundStyle(configuration.linkTintColor)
+                .foregroundStyle(tintColor)
             }
         }
+    }
+    
+    private func applyInlineIntent(
+        _ newIntent: InlinePresentationIntent,
+        to children: MarkupChildren
+    ) -> MarkdownNodeView {
+        var nodes = [MarkdownNodeView]()
+        for child in children {
+            var renderer = self
+            renderer.activeInlineIntent.formUnion(newIntent)
+            let node = renderer.visit(child)
+            if let text = node.asAttributedString {
+                let intent = text.inlinePresentationIntent ?? []
+                let attributedNode = MarkdownNodeView(
+                    text.mergingAttributes(
+                        AttributeContainer().inlinePresentationIntent(intent.union(newIntent))
+                    )
+                )
+                nodes.append(attributedNode)
+            } else {
+                nodes.append(node)
+            }
+        }
+        return MarkdownNodeView(nodes)
     }
 }

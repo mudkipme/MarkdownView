@@ -8,21 +8,29 @@
 import Foundation
 import SwiftUI
 
-struct MarkdownRendererConfiguration: Equatable, AllowingModifyThroughKeyPath, Sendable {
+struct MarkdownRendererConfiguration: Hashable, AllowingModifyThroughKeyPath, Sendable {
     var preferredBaseURL: URL?
     var componentSpacing: CGFloat = 8
     
     var math: Math = Math()
-    
-    var linkTintColor: Color = .accentColor
-    var inlineCodeTintColor: Color = .accentColor
-    var blockQuoteTintColor: Color = .accentColor
-    
+    var tintColors: [MarkdownTintableComponent : Color] = [:]
     var listConfiguration: MarkdownListConfiguration = MarkdownListConfiguration()
-    
-    var allowedImageRenderers: Set<String> = ["https", "http"]
-    var allowedBlockDirectiveRenderers: Set<String> = []
 }
+
+// MARK: - MarkdownTintableComponent
+
+@_documentation(visibility: internal)
+@available(*, deprecated, renamed: "MarkdownTintableComponent")
+public typealias TintableComponent = MarkdownTintableComponent
+
+/// Components that can apply a tint color.
+@_documentation(visibility: internal)
+public enum MarkdownTintableComponent: Hashable, Sendable {
+    case blockQuote
+    case inlineCodeBlock
+    case link
+}
+
 
 // MARK: - SwiftUI Environment
 
