@@ -29,35 +29,18 @@ struct MarkdownPreview: View {
         #endif
     }
 
-    @ViewBuilder
     private var renderedContent: some View {
         StreamingMarkdownReader(source) { parseResult in
             switch rendererKind {
-            #if os(iOS) || os(macOS)
-            case .markdownText:
-                MarkdownText(parseResult)
-            #endif
-            case .markdownView:
-                MarkdownView(parseResult)
+                #if os(iOS) || os(macOS)
+                case .markdownText:
+                    MarkdownText(parseResult)
+                #endif
+                case .markdownView:
+                    MarkdownView(parseResult)
             }
         }
     }
 
     private static let showcaseBaseURL = URL(string: "https://developer.apple.com")!
 }
-
-//#Preview {
-//    MarkdownPreview(
-//        markdownText: ExampleMarkdown.showcase,
-//        rendererKind: .markdownView
-//    )
-//}
-//
-//#if os(iOS) || os(macOS)
-//#Preview("MarkdownText") {
-//    MarkdownPreview(
-//        markdownText: ExampleMarkdown.showcase,
-//        rendererKind: .markdownText
-//    )
-//}
-//#endif

@@ -38,7 +38,7 @@ Review these changes before updating a package that uses MarkdownView 2.
 
 ## New features
 
-### ``MarkdownText``
+### Continuous text selection
 
 Use ``MarkdownText`` to render Markdown as text content on iOS and macOS.
 
@@ -60,7 +60,7 @@ MarkdownView(markdown)
     .font(PlatformFont.preferredFont(forTextStyle: .title1), for: .h1)
 ```
 
-### ``StreamingMarkdownReader``
+### Render streaming markdown
 
 Use ``StreamingMarkdownReader`` with ``StreamingMarkdownSource`` when markdown arrives continuously. The reader coalesces rapid updates and uses incremental parsing so stable root blocks can be reused between renders.
 
@@ -89,7 +89,7 @@ MarkdownView(markdown)
     .markdownLinksUnderlined()
 ```
 
-### ``MarkdownTableOfContentReader``
+### TOC (Table of Content) reader
 
 Previously, this is called `MarkdownTableOfContent`.
 
@@ -107,4 +107,4 @@ MarkdownReader(markdownText) { parseResult in
 }
 ```
 
-``MarkdownTableOfContentReader`` conforms to `Equatable`. You can add `.equatable()` when the rendered content depends only on the parsed `Markdown.Document` and the derived headings, so SwiftUI can skip recomputing the view body when document identity stays the same.
+``MarkdownTableOfContentReader`` now conforms to `Equatable`. You can add `.equatable()` when the rendered content depends only on the parsed `Markdown.Document` and the derived headings, so SwiftUI can skip recomputing the view body when document identity stays the same.

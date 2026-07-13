@@ -48,10 +48,10 @@ fileprivate struct DefaultMarkdownTable: View {
             }
         }
         .markdownTableCellPadding(spacing)
-        .padding(8)
+        .padding(12)
         .overlay {
-            RoundedRectangle(cornerRadius: 8, style: .continuous)
-                .strokeBorder(.quaternary, lineWidth: 2)
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .strokeBorder(.quaternary)
         }
     }
 }

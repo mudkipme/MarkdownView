@@ -5,7 +5,7 @@
 
 Render Markdown in SwiftUI with native views, configurable styling, and extensible renderers.
 
-MarkdownView uses [swift-markdown](https://github.com/swiftlang/swift-markdown) for parsing and supports CommonMark content, tables, task lists, code blocks, images, links, block directives, and LaTeX math rendering on iOS and macOS.
+Powered by [swift-markdown](https://github.com/swiftlang/swift-markdown), fully compliant with the CommonMark standard.
 
 ## Platforms
 
@@ -17,18 +17,19 @@ MarkdownView uses [swift-markdown](https://github.com/swiftlang/swift-markdown) 
 
 ## Highlighted Features
 
-- CommonMark rendering with tables, task lists, images, links, block quotes, headings, and code blocks.
-- LaTeX math rendering for inline and display math on iOS and macOS.
-- Syntax-highlighted code blocks with configurable light and dark Highlightr themes on iOS and macOS.
-- SVG, network, asset catalog, and relative-path image rendering.
-- `MarkdownText` for text-based rendering with continuous text selection on iOS and macOS.
-- `MarkdownReader`, `StreamingMarkdownReader`, and `MarkdownTableOfContentReader` for sharing parsed content, streaming updates, and building navigation.
-- Custom fonts, heading styles, list markers, tint colors, component spacing, block quote styles, code block styles, and table styles.
-- Custom renderers for images, links, and block directives.
+- Full CommonMark compliance
+- Built-in SVG image support
+- LaTeX math rendering
+- Continuous text selection on iOS and macOS
+- Extensible rendering with block directives
+- Customizable block styling
 
 ## Documentation
 
-For API details and migration notes, see the [Swift Package Index documentation](https://swiftpackageindex.com/LiYanan2004/MarkdownView/main/documentation/MarkdownView).
+You can view documentation on:
+
+- [main @ Swift Package Index](https://swiftpackageindex.com/LiYanan2004/MarkdownView/main/documentation/MarkdownView)
+- [main @ GitHub Pages](https://liyanan2004.github.io/MarkdownView/documentation/markdownview/)
 
 ## Getting Started
 
@@ -51,12 +52,12 @@ Add the product to your target:
 
 ## Usage
 
-### Render Markdown
+### Render static markdown
 
 Create a `MarkdownView` with a Markdown string.
 
 ```swift
-let markdownText = """
+let string = """
 # MarkdownView
 
 This is [MarkdownView](https://github.com/liyanan2004/MarkdownView).
@@ -64,12 +65,31 @@ This is [MarkdownView](https://github.com/liyanan2004/MarkdownView).
 MarkdownView renders Markdown with SwiftUI views.
 """
 
-MarkdownView(markdownText)
+MarkdownView(string)
 ```
 
 ![](/Images/simple-rendering.png)
 
-### Render Selectable Text
+### Render streaming Markdown
+
+`StreamingMarkdownReader` is optimized for rendering streaming markdown, with support for:
+
+- scheduled document processing
+- incremental parsing as new content arrives
+- background document parsing
+
+```swift
+@State private var markdownSource = StreamingMarkdownSource()
+
+StreamingMarkdownReader(markdownSource) { parseResult in
+    // Use MarkdownView or MarkdownText based on your needs.
+    MarkdownView(parseResult)
+}
+```
+
+Create one `StreamingMarkdownSource` for each response and keep it alive for the lifetime of that stream. Update `markdownSource.text` as new chunks arrive, then call `finishStreaming()` when the stream finishes.
+
+### Text selection
 
 Use `MarkdownText` when text selection behavior is more important than full view-based layout.
 
@@ -77,9 +97,11 @@ Use `MarkdownText` when text selection behavior is more important than full view
 MarkdownText("Hello **MarkdownText**")
 ```
 
-`MarkdownText` is available when RichText is available, currently on iOS and macOS.
+`MarkdownText` is available when [RichText](https://github.com/LiYanan2004/RichText) framework is available, currently on iOS and macOS.
 
-### Render Math
+![](/Images/continuous-text-selection.gif)
+
+### Render math
 
 Enable LaTeX math rendering with `markdownMathRenderingEnabled()`.
 
@@ -88,19 +110,18 @@ MarkdownView("Inline math: $E = mc^2$")
     .markdownMathRenderingEnabled()
 ```
 
-Math rendering is available on iOS and macOS when the package includes the default `LaTeX` trait.
+Both inline math and display math are supported.
 
-Display math is also supported:
+Math rendering is available on iOS and macOS when the `LaTeX` trait is enabled. The trait is enabled by default.
 
-```markdown
-\[
-\int_{-\infty}^{\infty} e^{-x^2} dx = \sqrt{\pi}
-\]
-```
-
-### Customize Appearance
+### Customize appearances
 
 Set a custom font for a Markdown component.
+
+> [!NOTE]
+> `MarkdownView` always respects to the `SwiftUI.Font`
+>
+> `MarkdownText` respects `SwiftUI.Font` only on OS 26 and later. Earlier OS versions fallbacks to the platform body font instead due to API limitations. It's recommended to use `CustomCTFontConvertible`-conforming types (e.g. `UIFont` / `NSFont`) if you need to support earlier OS versions.
 
 ```swift
 MarkdownView("# H1 title")
@@ -135,7 +156,7 @@ MarkdownView(markdownText)
     .markdownUnorderedListMarker(.bullet)
 ```
 
-### Share Parsed Content
+### Share parsed content
 
 Use `MarkdownReader` when multiple views need the same parse result.
 
@@ -151,7 +172,7 @@ MarkdownReader(markdownText) { parseResult in
 }
 ```
 
-### Extend Rendering
+### Extend rendering
 
 Register custom renderers for images, links, and block directives.
 

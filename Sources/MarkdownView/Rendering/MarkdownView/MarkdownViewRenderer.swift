@@ -153,7 +153,7 @@ struct MarkdownViewRenderer: @preconcurrency MarkupVisitor {
             MarkdownStyledCodeBlock(
                 configuration: MarkdownCodeBlockStyleConfiguration(
                     language: codeBlock.language,
-                    code: codeBlock.code
+                    code: codeBlock.code.trimmingCharacters(in: .newlines)
                 )
             )
         }

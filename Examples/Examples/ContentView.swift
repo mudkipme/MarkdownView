@@ -104,7 +104,7 @@ struct ContentView: View {
             }
         }
         .formStyle(.grouped)
-        .frame(width: 280)
+        .frame(idealWidth: 280)
     }
 
     private func startStreaming() {
