@@ -60,6 +60,9 @@ public struct MarkdownText: View {
                 taskListMarker: taskListMarker
             )
             .makeTextContent(for: parseResult.document)
+            #if os(iOS)
+            Self.terminalLayoutSentinel(bodyFont: fonts.body.asPlatformFont)
+            #endif
         }
         .environment(\.markdownMathContext, parseResult.mathContext)
         .environment(\.markdownElementRenderers, elementRenderers)
@@ -67,6 +70,20 @@ public struct MarkdownText: View {
         .environment(\.blockQuoteStyle, blockQuoteStyle)
         .environment(\.codeBlockStyle, codeBlockStyle)
         .environment(\.markdownTableStyle, tableStyle)
+    }
+
+    /// Keeps text layout stable when a document starts and ends with hosted inline views.
+    ///
+    /// Without a trailing text run, task-list-only documents can be measured with incomplete
+    /// line fragments on iOS 26, causing labels to wrap or disappear. The tiny zero-width run
+    /// terminates layout without adding visible spacing or changing the parsed Markdown tree.
+    static func terminalLayoutSentinel(bodyFont: PlatformFont) -> AttributedString {
+        AttributedString(
+            "\n\u{200B}",
+            attributes: AttributeContainer([
+                .font: bodyFont.withSize(0.01)
+            ])
+        )
     }
 }
 

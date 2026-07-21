@@ -313,6 +313,25 @@ struct MarkdownTextConverterTests {
     }
 
     @Test(
+        "Creates a negligible terminal run for iOS text layout",
+        .tags(.textConversion, .lists)
+    )
+    @MainActor
+    func createsTerminalLayoutSentinel() {
+        let sentinel = MarkdownText.terminalLayoutSentinel(
+            bodyFont: PlatformFont.systemFont(ofSize: 17)
+        )
+        let attributedString = NSAttributedString(sentinel)
+        let sentinelFont = MarkdownViewTestSupport.font(
+            in: attributedString,
+            matching: "\u{200B}"
+        )
+
+        #expect(String(sentinel.characters) == "\n\u{200B}")
+        #expect(abs((sentinelFont?.pointSize ?? 0) - 0.01) < 0.001)
+    }
+
+    @Test(
         "Applies paragraph spacing to code-block attachments",
         .tags(.textConversion, .attachments)
     )
