@@ -194,7 +194,7 @@ fileprivate struct DefaultMarkdownCodeBlock: View {
             #elseif os(iOS) || os(visionOS)
             UIPasteboard.general.string = codeBlockConfiguration.code
             #endif
-            Task {
+            _ = Task {
                 withAnimation {
                     codeCopied = true
                 }
