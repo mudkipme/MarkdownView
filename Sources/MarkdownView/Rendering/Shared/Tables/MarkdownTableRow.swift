@@ -23,7 +23,7 @@ struct MarkdownTableRow: View {
     
     var body: some View {
         GridRow {
-            ForEach(Array(cells.enumerated()), id: \.offset) { (index, cell) in
+            ForEach(renderableCells, id: \.offset) { (index, cell) in
                 cell.content
                     .multilineTextAlignment(cell.textAlignment)
                     .gridColumnAlignment(cell.horizontalAlignment)
@@ -37,5 +37,11 @@ struct MarkdownTableRow: View {
                     )
             }
         }
+    }
+
+    var renderableCells: [(offset: Int, element: MarkdownTableStyleConfiguration.Table.Cell)] {
+        // The parser retains cells covered by a preceding colspan with a zero
+        // span. They preserve column indexes, but are not SwiftUI Grid children.
+        Array(cells.enumerated()).filter { $0.element.colspan > 0 }
     }
 }
